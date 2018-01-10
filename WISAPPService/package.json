@@ -1,0 +1,15 @@
+{
+  "name": "wisapp",
+  "version": "1.0.0",
+  "description": "WIS Restfull API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sergio Peralta",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.6.0",
+    "tedious": "^2.1.5"
+  }
+}
