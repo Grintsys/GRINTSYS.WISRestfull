@@ -10,6 +10,11 @@
   "license": "MIT",
   "dependencies": {
     "async": "^2.6.0",
+    "body-parser": "^1.18.2",
+    "cors": "^2.8.4",
+    "express": "^4.16.2",
+    "mssql": "^4.1.0",
+    "node-uuid": "^1.4.8",
     "tedious": "^2.1.5"
   }
 }
