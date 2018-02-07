@@ -35,6 +35,7 @@ app.post('/api/login', function(req, res) {
 });
 */
 
+//http://localhost:8090/api/grades/6.1.2015192.1
 router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
     .get(function(req, res){
         console.log('call ro api/grades');
@@ -50,17 +51,16 @@ router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
 
                 console.log('g: '+grade+ ' section: ' +section +' student: '+student+' p: '+partial);
 
-                var request = pool.request()
-                    .input('GraCodigo', grade)
-                    .input('SeccCodigo', section)
-                    .input('AluCodigo', student)
-                    .input('Parcial', partial)
-                    .query('select * \
-                              from dbo.grades_v a\
-                             where a.GraCodigo = @GraCodigo\
-                               and a.SeccCodigo = @SeccCodigo\
-                               and a.AluCodigo = @AluCodigo\
-                               and a.parcial = @Parcial', (err, recordset) => {
+                var request = pool.request();
+
+                var queryText = `select * \
+                                   from dbo.grades_v\
+                                  where GraCodigo = ${grade}\
+                                    and SeccCodigo = ${section}\
+                                    and AluCodigo = ${student}\
+                                    and parcial = ${partial}`;
+
+                    request.query(queryText, (err, recordset) => {
 
                                 if(err) console.log(err);
     
@@ -76,14 +76,73 @@ router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
                                         message: 'not record found'
                                     }; 
                                 }
+
+                                res.send(result);
                         });
             }else {
                 res.send({message:'error not fields are specified', success:false}); 
             }
         })
+
+        pool.on('error', err => {
+            res.send({error: err, success: false });
+        });
     })
 
+router.route('/grades/average/:gradeId.:sectionId.:studentId.:partial')
+    .get(function(req, res){
+        console.log('call ro api/grades');
 
+        const pool = new sql.ConnectionPool(config, err => {
+            if(err) console.log(err);
+
+            if(req.params.gradeId && req.params.sectionId && req.params.studentId && req.params.partial){
+                var grade = req.params.gradeId;
+                var section = req.params.sectionId;
+                var student = req.params.studentId;
+                var partial = req.params.partial;
+
+                console.log('grade: '+grade+ ' section: ' +section +' student: '+student+' partial: '+partial);
+
+                var request = pool.request();
+
+                var queryText = `select AVG(Total) as Average \
+                                   from dbo.grades_v\
+                                  where GraCodigo = ${grade}\
+                                    and SeccCodigo = ${section}\
+                                    and AluCodigo = ${student}\
+                                    and parcial = ${partial}`;
+
+                request.query(queryText, (err, recordset) => {
+
+                        if(err) console.log(err);
+    
+                        if(recordset.recordset.length > 0)
+                        {
+                            var result = {
+                                success: true, 
+                                average: recordset.recordset[0].Average                                    
+                            };
+                        } else {
+                            var result = {
+                                success: false,
+                                message: 'not record found'
+                            }; 
+                        }
+
+                        res.send(result);
+                });
+            } else {
+                res.send({message:'error not fields are specified', success:false}); 
+            }
+        })
+
+        pool.on('error', err => {
+            res.send({error: err, success:false });
+        });
+    })
+
+    //payments/6.1
 router.route('/payments/:gradeId.:cod')
     .get(function(req, res){
         console.log('call to api/payments');
@@ -93,19 +152,22 @@ router.route('/payments/:gradeId.:cod')
             if(req.params.gradeId && req.params.cod){
                 var grade = req.params.gradeId;
                 var cod = req.params.cod;
-                console.log('g: '+grade + ' c: '+cod);
 
-                var request = pool.request()
-                .input('GraCodigo', grade)
-                .input('CoConPlan', cod)
-                .query(' SELECT a.CoConcMes [Month],\
+                console.log('grade: '+grade + ' code: '+cod);
+
+                var request = pool.request();
+
+                var queryText = `SELECT a.CoConcMes [Month],\
                                 1 [Status],\
                                 SUM(a.CoConcValor) Total\
                         FROM [wis].[dbo].[COCONCEPFACXANIOLEVEL1] a\
                         where Anio = year(getdate()) - 1\
-                            and GraCodigo = @GraCodigo\
-                            and CoConPlan = @CoConPlan\
-                        GROUP BY CoConcMes', (err, recordset) => {
+                            and GraCodigo = ${grade}\
+                            and CoConPlan = ${cod}\
+                        GROUP BY CoConcMes`;
+                        
+                        
+                        request.query(queryText, (err, recordset) => {
 
                             if(err) console.log(err);
 
@@ -119,8 +181,10 @@ router.route('/payments/:gradeId.:cod')
                                 var result = {
                                     success: false,
                                     message: 'not record found'
-                                }; 
+                                };
                             }
+
+                            res.send(result);
                     });
             } else {
                 res.send({message:'error not username specified', success:false}); 
@@ -143,11 +207,15 @@ router.route('/student/:username')
                 var username = req.params.username;
                 console.log('U '+username);
 
-                var request = pool.request()
-                .input('UserCode', username)
-                .query('SELECT distinct [AluCodigo]\
+                var request = pool.request();
+
+                
+                var queryText = `SELECT distinct [AluCodigo]\
                         FROM [wis].[dbo].[USUARIOSALUMNOS]\
-                        WHERE [UserCode] = @UserCode', (err, recordset) => {
+                        WHERE [UserCode] = '${username}'`;
+                        
+                    request.query(queryText, (err, recordset) => {
+
                          if(err) console.log(err);
 
                          if(recordset.recordset.length > 0)
@@ -158,16 +226,65 @@ router.route('/student/:username')
                                 success: true, 
                                 users: recordset.recordsets
                             }; 
-                            console.log(result);
-                            res.send(result); 
                          } else {
                             var result = {
                                 success: false, 
                                 message: 'Wrong username'
-                            }; 
-                            console.log(result); 
-                            res.send(result);     
+                            };  
                         }
+
+                        res.send(result);
+                     })
+
+            } else {
+                res.send({message:'error not username specified', success:false}); 
+            }
+        });
+        
+        pool.on('error', err => {
+            res.send({error: err, success:false});
+        });
+    })
+
+    router.route('/students/:username')
+    .get(function(req, res){
+        console.log('call to api/students');
+        const pool = new sql.ConnectionPool(config, err => {
+            if(err) console.log(err);
+
+            if(req.params.username){
+                var username = req.params.username;
+                console.log('Username: '+username);
+
+                var request = pool.request();
+                
+                var queryText = ` SELECT distinct c.AluCodigo as StudentCode\
+                                         ,trim(a.UserNombre) [Name]
+                                    FROM [wis].[dbo].[USUARIOS] a\
+                                        inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario\
+                                        inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod\
+                                    WHERE a.[UserCode] = '${username}' \
+                                    and a.UserActivo = 'S'`;
+                        
+                    request.query(queryText, (err, recordset) => {
+
+                         if(err) console.log(err);
+
+                         if(recordset.recordset.length > 0)
+                         {
+
+                            var result = {
+                                success: true, 
+                                users: recordset.recordsets
+                            }; 
+                         } else {
+                            var result = {
+                                success: false, 
+                                message: 'Wrong username'
+                            };  
+                        }
+
+                        res.send(result);
                      })
 
             } else {
@@ -197,35 +314,66 @@ router.route('/login')
                     console.log("U: "+username+" P: "+password);
 
                     // create Request object
-                    var request = pool.request()
-                    .input('UserLogin', sql.NText, username)
-                    .query('select top 1 * from dbo.USUARIOS WHERE UserLogin = @UserLogin', (err, recordset) => {
+                    var request = pool.request();
+                    
+                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo
+                                       from dbo.USUARIOS a
+                                            inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
+                                     WHERE trim(UserLogin) = trim('${username}')`;
+                         
+                    request.query(queryText, (err, recordset) => {
                 
                         if (err) console.log(err);  
                         // send records as a response
 
                         if(recordset.recordset.length > 0)
                         {
-                            console.log("Success Login for "+username);
+                            console.log("Success Login for student "+username);
 
                             var result = {
                                 success: true, 
-                                user: recordset.recordset[0]
+                                users: recordset.recordsets
                             }; 
-                            console.log(result);
-                            res.send(result); 
-                        } else {
-                            var result = {
-                                success: false, 
-                                message: 'Wrong username or password'
-                            }; 
-                            console.log(result); 
-                            res.send(result);     
-                        }
 
+                            res.send(result);
+        
+                        } else {
+
+                            var request2 = pool.request();
+
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Name]
+                                                FROM [wis].[dbo].[USUARIOS] a
+                                                    inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
+                                                    inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
+                                                WHERE trim(USERCODE) = trim('${username}') 
+                                                    and UserActivo = 'S'`;
+
+                            request2.query(queryText, (err, recordset) => {
+
+                                if (err) console.log(err);  
+                                // send records as a response
+
+                                if(recordset.recordset.length > 0)
+                                {
+                                    console.log("Success Login for familiy "+username);
+        
+                                    var result = {
+                                        success: true, 
+                                        users: recordset.recordsets
+                                    };                                        
+                                } else{
+                                    var result = {
+                                        success: false, 
+                                        message: 'Wrong username or password'
+                                    };
+                                }
+
+                                res.send(result);
+                            });  
+                        }
                     });
             }else{
-                    res.send({message:'error not username or password', success:false}); 
+                    res.send({message:'error on username or password', success:false}); 
             }
         });
 
@@ -233,6 +381,149 @@ router.route('/login')
             res.send({error: err, success:false});
         });
     })
+
+router.route('/student/data/:student')
+    .get(function(req, res){
+
+        console.log('Call to api/student/data ');
+
+        const pool = new sql.ConnectionPool(config, err => {
+
+            if (err) console.log(err);
+
+            if(req.params.student)
+            {
+                    var student = req.params.student;
+
+                    console.log("student: "+student);
+
+                    // create Request object
+                    var request = pool.request();
+                    
+                    var queryText = `SELECT top 1 [GraCodigo] GradeId, 
+                                            [SeccCodigo] SectionId 
+                                      FROM [wis].[dbo].[TRABAJOSCLASESEVALUARLEVEL1] A
+                                     WHERE AluCodigo = ${student}
+                                     ORDER BY a.TrabClassEvaFecha desc`;
+                         
+                    request.query(queryText, (err, recordset) => {
+                
+                        if (err) console.log(err);  
+                        // send records as a response
+
+                        if(recordset.recordset.length > 0)
+                        {
+                            var result = {
+                                success: true, 
+                                data: recordset.recordset[0]
+                            }; 
+
+                            res.send(result);    
+                        } else {
+
+                            var result = {
+                                success: false
+                            }; 
+
+                            res.send(result);   
+                        }
+                    });
+            }else{
+                    res.send({message:'Error', success:false}); 
+            }
+        });
+
+        pool.on('error', err => {
+            res.send({error: err, success:false});
+        });
+    })
+
+
+router.route('/login2/:username.:password')
+    .get(function(req, res){
+
+        console.log('Call to api/login2 ');
+
+        const pool = new sql.ConnectionPool(config, err => {
+
+            if (err) console.log(err);
+
+            if(req.params.username && req.params.password)
+            {
+                    var username = req.params.username;
+                    var password = req.params.password;
+
+                    console.log("U: "+username+" P: "+password);
+
+                    // create Request object
+                    var request = pool.request();
+                    
+                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo
+                                       from dbo.USUARIOS a
+                                            inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
+                                     WHERE trim(UserLogin) = trim('${username}')`;
+                         
+                    request.query(queryText, (err, recordset) => {
+                
+                        if (err) console.log(err);  
+                        // send records as a response
+
+                        if(recordset.recordset.length > 0)
+                        {
+                            console.log("Success Login for student "+username);
+
+                            var result = {
+                                success: true, 
+                                users: recordset.recordsets
+                            }; 
+
+                            res.send(result);
+        
+                        } else {
+
+                            var request2 = pool.request();
+
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Name]
+                                                FROM [wis].[dbo].[USUARIOS] a
+                                                     inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
+                                                     inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
+                                                WHERE trim(USERCODE) = trim('${username}') 
+                                                    and UserActivo = 'S'`;
+
+                            request2.query(queryText, (err, recordset) => {
+
+                                if (err) console.log(err);  
+                                // send records as a response
+
+                                if(recordset.recordset.length > 0)
+                                {
+                                    console.log("Success Login for familiy "+username);
+        
+                                    var result = {
+                                        success: true, 
+                                        users: recordset.recordsets
+                                    };                                        
+                                } else {
+                                    var result = {
+                                        success: false, 
+                                        message: 'Wrong username or password'
+                                    };
+                                }
+
+                                res.send(result);
+                            });  
+                        }
+                    });
+            }else{
+                    res.send({message:'error on username or password', success:false}); 
+            }
+        });
+
+        pool.on('error', err => {
+            res.send({error: err, success:false});
+        });
+    })
+
 
 router.route('/users').get(function (req, res) {
 
@@ -259,6 +550,8 @@ router.route('/users').get(function (req, res) {
         res.send({error: err});
     });
  });
+
+ 
 
  router.route('/homework/:gradeId.:sectionId').get(function (req, res) {
 
