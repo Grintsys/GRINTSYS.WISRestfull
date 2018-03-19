@@ -170,7 +170,7 @@ router.route('/payments/:gradeId.:cod')
 
                 var queryText = `select trim(b.CoConcDescrip) [Description],
                                     a.CoConcValor [Total],
-                                    a.CoConcFecha [Date],
+                                    cast(a.CoConcFecha as date) [Date],
                                     1 [IsOverdue]
                             from [wis].[dbo].[COCONCEPFACXANIOLEVEL1] a
                                  inner join [dbo].[COCONCEPFACTU] b on a.CoConcCodigo = b.CoConcCodigo
@@ -187,7 +187,7 @@ router.route('/payments/:gradeId.:cod')
                             {
                                 var result = {
                                     success: true, 
-                                    TotalDue: 7200,
+                                    TotalDue: 0,
                                     payments: recordset.recordset
                                 };
                             } else {
@@ -210,22 +210,22 @@ router.route('/payments/:gradeId.:cod')
     });
 
 
-router.route('/student/:username')
+router.route('/student/:usercode')
     .get(function(req, res){
         console.log('call to api/student');
         const pool = new sql.ConnectionPool(config, err => {
             if(err) console.log(err);
 
-            if(req.params.username){
-                var username = req.params.username;
-                console.log('U '+username);
+            if(req.params.usercode){
+                var usercode = req.params.usercode;
+                console.log('U '+usercode);
 
                 var request = pool.request();
 
                 
                 var queryText = `SELECT distinct [AluCodigo]\
                         FROM [wis].[dbo].[USUARIOSALUMNOS]\
-                        WHERE [UserCode] = `+username;
+                        WHERE [UserCode] = '${usercode}'`;
 
                         console.log(queryText);
                         
@@ -290,7 +290,7 @@ router.route('/student/:username')
 
                             var result = {
                                 success: true, 
-                                users: recordset.recordsets
+                                users: recordset.recordset
                             }; 
                          } else {
                             var result = {
@@ -312,24 +312,22 @@ router.route('/student/:username')
         });
     })
 
-router.route('/student/:username/data')
+router.route('/student/:estudentcode/data')
     .get(function(req, res){
         console.log('call to api/students');
         const pool = new sql.ConnectionPool(config, err => {
             if(err) console.log(err);
 
-            if(req.params.username){
-                var username = req.params.username;
-                console.log('Username: '+username);
+            if(req.params.estudentcode){
+                var estudentcode = req.params.estudentcode;
+                console.log('StudentCode: '+ estudentcode);
 
                 var request = pool.request();
 
-                var queryText = `SELECT top 1 [GraCodigo] GradeId, 
-                                    [SeccCodigo] SectionId 
-                              FROM [wis].[dbo].[TRABAJOSCLASESEVALUARLEVEL1] A
-                             WHERE AluCodigo = '${username}'
-                             ORDER BY a.TrabClassEvaFecha desc`;
-
+                var queryText = `select top 1 a.AluCodigo StudentCode, a.Gracodigo GradeId, a.SeccCodigo SectionId
+                                   from dbo.[CLASESMATRICULADASLEVEL1] a 
+                                  where a.AluCodigo = '${estudentcode}'
+                                  order by GraCodigo desc`
                         
                     request.query(queryText, (err, recordset) => {
 
@@ -381,10 +379,10 @@ router.route('/login')
                     // create Request object
                     var request = pool.request();
                     
-                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo
+                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo StudentCode
                                        from dbo.USUARIOS a
                                             inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
-                                      WHERE trim(UserLogin) = trim('${username}')`;
+                                      WHERE trim(UserLogin) = trim('${username}') and trim(UserClave) = trim('${password}')`;
                          
                     request.query(queryText, (err, recordset) => {
                 
@@ -406,11 +404,11 @@ router.route('/login')
 
                             var request2 = pool.request();
 
-                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Name]
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserCode) [Username]
                                                 FROM [wis].[dbo].[USUARIOS] a
                                                     inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
                                                     inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
-                                                WHERE trim(USERCODE) = trim('${username}') 
+                                                WHERE trim(USERCODE) = trim('${username}') and trim(UserClave) = trim('${password}') 
                                                     and UserActivo = 'S'`;
 
                             request2.query(queryText, (err, recordset) => {
@@ -466,10 +464,11 @@ router.route('/login2/:username.:password')
                     // create Request object
                     var request = pool.request();
                     
-                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo
+                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo StudentCode
                                        from dbo.USUARIOS a
                                             inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
-                                     WHERE trim(UserLogin) = trim('${username}')`;
+                                     WHERE trim(UserLogin) = trim('${username}') and trim(UserClave) = trim('${password}')
+                                       and UserActivo = 'S'`;
                          
                     request.query(queryText, (err, recordset) => {
                 
@@ -491,12 +490,12 @@ router.route('/login2/:username.:password')
 
                             var request2 = pool.request();
 
-                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Name]
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Username]
                                                 FROM [wis].[dbo].[USUARIOS] a
                                                      inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
                                                      inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
-                                                WHERE trim(USERCODE) = trim('${username}') 
-                                                    and UserActivo = 'S'`;
+                                                WHERE trim(USERCODE) = trim('${username}') and trim(UserClave) = trim('${password}') 
+                                                  and UserActivo = 'S'`;
 
                             request2.query(queryText, (err, recordset) => {
 
@@ -533,19 +532,21 @@ router.route('/login2/:username.:password')
     })
 
 
-router.route('/users').get(function (req, res) {
+router.route('/users/:name').get(function (req, res) {
 
      console.log('Call to api/users ');
 
      const pool = new sql.ConnectionPool(config, err => {
 
         if (err) console.log(err);
+
+        var name = req.params.name;
     
         // create Request object
         var request = pool.request();
     
         // query to the database and get the records
-        request.query('select * from dbo.USUARIOS', (err, recordset) => {
+        request.query(`select a.[UserNombre] from [wis].[dbo].[USUARIOS] a where a.[name] like ${name}`, (err, recordset) => {
     
             if (err) console.log(err)
     
@@ -577,7 +578,7 @@ router.route('/users').get(function (req, res) {
                         ,trim(a.[TrabClassMatriculaDescrip]) as [Description]\
                         ,a.[TrabClassmatriculaPeso] as [Value]\
                         ,a.[TrabClassMatriculaFechEntre] as [Date]\
-                        ,abs(DATEDIFF(dd, a.[TrabClassMatriculaFechEntre], dateadd(mm, -1, GETDATE()))) [RemainTime]\
+                        ,abs(DATEDIFF(dd, GETDATE(), a.[TrabClassMatriculaFechEntre])) [RemainTime]\
                             FROM [dbo].[TRABAJOSCLASESMATRICULADASLEVE] a\
                             inner join [dbo].CLASES b\
                                     on a.ClaCodigo = b.ClaCodigo\
@@ -585,9 +586,9 @@ router.route('/users').get(function (req, res) {
                                     on c.GraCodigo = a.GraCodigo \
                     WHERE a.GraCodigo = ${req.params.gradeId} \
                         and a.SeccCodigo = ${req.params.sectionId} \
-                        and a.TrabClassMatriculaFechMax >= dateadd(mm, -1, GETDATE())\
+                        and a.TrabClassMatriculaFechMax >= GETDATE()\
                         and b.ClaTipo = 'NO'
-                    order by a.[TrabClassMatriculaFechEntre] desc`;
+                    order by a.[TrabClassMatriculaFechEntre] asc`;
 
        //console.log(queryText);
        // query to the database and get the records
