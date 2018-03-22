@@ -226,8 +226,8 @@ router.route('/student/:usercode')
                 var queryText = `SELECT distinct [AluCodigo]\
                         FROM [wis].[dbo].[USUARIOSALUMNOS]\
                         WHERE [UserCode] = '${usercode}'`;
-
-                        console.log(queryText);
+                   
+                    console.log(queryText);
                         
                     request.query(queryText, (err, recordset) => {
 
@@ -274,7 +274,7 @@ router.route('/student/:usercode')
                 var request = pool.request();
                 
                 var queryText = ` SELECT distinct c.AluCodigo as StudentCode\
-                                         ,trim(a.UserNombre) [Name]
+                                  ,trim(a.UserNombre) + ' ' + trim(a.UserApellido) [Name]
                                     FROM [wis].[dbo].[USUARIOS] a\
                                         inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario\
                                         inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod\
