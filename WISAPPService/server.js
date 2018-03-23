@@ -117,7 +117,7 @@ router.route('/grades/average/:gradeId.:sectionId.:studentId.:partial')
 
                 var request = pool.request();
 
-                var queryText = `select AVG(Total) as Average \
+                var queryText = `select cast(AVG(cast(Total as float)) as decimal(9,1)) as Average \
                                    from dbo.grades_v\
                                   where GraCodigo = ${grade}\
                                     and SeccCodigo = ${section}\
@@ -273,13 +273,15 @@ router.route('/student/:usercode')
 
                 var request = pool.request();
                 
-                var queryText = ` SELECT distinct c.AluCodigo as StudentCode\
-                                  ,trim(a.UserNombre) + ' ' + trim(a.UserApellido) [Name]
-                                    FROM [wis].[dbo].[USUARIOS] a\
-                                        inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario\
-                                        inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod\
-                                    WHERE a.[UserCode] = '${username}' \
-                                    and a.UserActivo = 'S'`;
+                var queryText = ` SELECT distinct c.AluCodigo as StudentCode
+                            ,trim(e.UserNombre) + ' ' + trim(e.UserApellido) [Name]
+                  FROM [wis].[dbo].[USUARIOS] a
+                      inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario
+                      inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
+                      left join [wis].[dbo].[USUARIOSALUMNOS] d on d.AluCodigo = c.AluCodigo 
+                      left join [wis].[dbo].[USUARIOS] e on e.UserCode = d.UserCode
+                  WHERE a.[UserCode] = '${username}' 
+                  and a.UserActivo = 'S'`;
                         
                     request.query(queryText, (err, recordset) => {
 
@@ -587,8 +589,9 @@ router.route('/users/:name').get(function (req, res) {
                     WHERE a.GraCodigo = ${req.params.gradeId} \
                         and a.SeccCodigo = ${req.params.sectionId} \
                         and a.TrabClassMatriculaFechMax >= GETDATE()\
-                        and b.ClaTipo = 'NO'
-                    order by a.[TrabClassMatriculaFechEntre] asc`;
+                        and b.ClaTipo in ('NO','MD')
+                        and b.ClaConPerso = 'N'
+                    order by a.[TrabClassMatriculaFechEntre] desc`;
 
        //console.log(queryText);
        // query to the database and get the records
