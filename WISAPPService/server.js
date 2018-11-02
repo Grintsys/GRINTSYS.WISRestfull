@@ -17,7 +17,8 @@ app.use(methodOverride());
 app.use(bodyParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(clientErrorHandler)
+app.use(clientErrorHandler);
+app.use(errorHandler);
 
 /* Error handler */
 function clientErrorHandler (err, req, res, next) {
@@ -29,7 +30,12 @@ function clientErrorHandler (err, req, res, next) {
     }
 }
 
-/* Database Handler */
+function errorHandler(err, req, res, next) {
+    res.status(500);
+    res.render('error', { error: err });
+  }
+
+/* Database config env settings */
 const config = {
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
