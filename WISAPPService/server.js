@@ -54,7 +54,7 @@ var server = app.listen(port, function(req, res, next){
         throw result.error
     }
     console.log(`server running at - ${server.address().address}:${server.address().port}`);
-    console.log(result.parsed);
+    //console.log(result.parsed);
 
     console.log(config);
 })
