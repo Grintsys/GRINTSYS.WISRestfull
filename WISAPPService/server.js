@@ -43,10 +43,11 @@ const config = {
     database: process.env.DB_DATABASE,
     port: parseInt(process.env.DB_PORT),
     debug: true,
-    options: {
-        encrypt: false,
+    //azure options
+    /*options: {
+        encrypt: true,
         instanceName: process.env.DB_INSTANCE_NAME || 'SQLEXPRESS'
-    }
+    }*/
 };
 
 var server = app.listen(port, function(req, res, next){
@@ -178,7 +179,7 @@ router.get('/payments/:gradeId.:cod', function(req, res, next){
 
                 var request = pool.request();
 
-                var queryText = `select trim(b.CoConcDescrip) [Description],
+                var queryText = `select rtrim(ltrim(b.CoConcDescrip)) [Description],
                                     a.CoConcValor [Total],
                                     cast(a.CoConcFecha as date) [Date],
                                     1 [IsOverdue]
@@ -282,7 +283,7 @@ router.get('/student/:usercode', function(req, res, next){
                 var request = pool.request();
                 
                 var queryText = ` SELECT distinct c.AluCodigo as StudentCode
-                            ,trim(e.UserNombre) + ' ' + trim(e.UserApellido) [Name]
+                            ,rtrim(ltrim(e.UserNombre)) + ' ' + ltrim(rtrim(e.UserApellido)) [Name]
                   FROM [wis].[dbo].[USUARIOS] a
                       inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario
                       inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
@@ -387,10 +388,10 @@ router.post('/login', function(req, res, next){
                     // create Request object
                     var request = pool.request();
                     
-                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo StudentCode
+                    var queryText = `select distinct ltrim(rtrim(a.UserCode)) Username, b.AluCodigo StudentCode
                                        from dbo.USUARIOS a
                                             inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
-                                      WHERE trim(UserLogin) = trim('${username}') and trim(UserClave) = trim('${password}')`;
+                                      WHERE ltrim(rtrim(UserLogin)) = ltrim(rtrim('${username}')) and ltrim(rtrim(UserClave)) = ltrim(rtrim('${password}'))`;
                          
                     request.query(queryText, (err, recordset) => {
                 
@@ -412,11 +413,11 @@ router.post('/login', function(req, res, next){
 
                             var request2 = pool.request();
 
-                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserCode) [Username]
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, ltrim(rtrim(a.UserCode)) [Username]
                                                 FROM [wis].[dbo].[USUARIOS] a
                                                     inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
                                                     inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
-                                                WHERE trim(USERCODE) = trim('${username}') and trim(UserClave) = trim('${password}') 
+                                                WHERE ltrim(rtrim(USERCODE)) = ltrim(rtrim('${username}')) and ltrim(rtrim(UserClave)) = ltrim(rtrim('${password}')) 
                                                     and UserActivo = 'S'`;
 
                             request2.query(queryText, (err, recordset) => {
@@ -471,10 +472,10 @@ router.get('/login2/:username.:password', function(req, res, next){
                     // create Request object
                     var request = pool.request();
                     
-                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo StudentCode
+                    var queryText = `select distinct rtrim(a.UserCode) Username, b.AluCodigo StudentCode
                                        from dbo.USUARIOS a
                                             inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
-                                     WHERE trim(UserLogin) = trim('${username}') and trim(UserClave) = trim('${password}')
+                                     WHERE rtrim(UserLogin) = rtrim(ltrim('${username}')) and rtrim(ltrim(UserClave)) = ltrim(rtrim('${password}'))
                                        and UserActivo = 'S'`;
                          
                     request.query(queryText, (err, recordset) => {
@@ -497,11 +498,11 @@ router.get('/login2/:username.:password', function(req, res, next){
 
                             var request2 = pool.request();
 
-                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Username]
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, rtrim(a.UserNombre) [Username]
                                                 FROM [wis].[dbo].[USUARIOS] a
                                                      inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
                                                      inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
-                                                WHERE trim(USERCODE) = trim('${username}') and trim(UserClave) = trim('${password}') 
+                                                WHERE ltrim(rtrim(USERCODE)) = ltrim(rtrim('${username}')) and ltrim(rtrim(UserClave)) = ltrim(rtrim('${password}')) 
                                                   and UserActivo = 'S'`;
 
                             request2.query(queryText, (err, recordset) => {
@@ -580,9 +581,9 @@ router.get('/homework/:gradeId.:sectionId', function (req, res, next) {
        // create Request object
        var request = pool.request();
    
-       var queryText = `SELECT trim(b.ClaDescrip) as [Subject]\
-                        ,trim(c.GraDescripcion) as [Grade]\
-                        ,trim(a.[TrabClassMatriculaDescrip]) as [Description]\
+       var queryText = `SELECT ltrim(rtrim(b.ClaDescrip)) as [Subject]\
+                        ,ltrim(rtrim(c.GraDescripcion)) as [Grade]\
+                        ,ltrim(rtrim(a.[TrabClassMatriculaDescrip])) as [Description]\
                         ,a.[TrabClassmatriculaPeso] as [Value]\
                         ,a.[TrabClassMatriculaFechEntre] as [Date]\
                         ,abs(DATEDIFF(dd, GETDATE(), a.[TrabClassMatriculaFechEntre])) [RemainTime]\
