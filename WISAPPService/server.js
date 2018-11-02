@@ -1,23 +1,27 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-var methodOverride = require('method-override')
+var methodOverride = require('method-override');
 var cors = require('cors');
 const sql = require('mssql')
+var dotenv = require('dotenv')
+
+const result = dotenv.config();
+var router = express.Router();
 var app = express();
 
-app.use(methodOverride())
+var port = parseInt(process.env.APP_PORT) || 8091;
+
+app.use(cors());
+app.use('/api', router);
+app.use(methodOverride());
+app.use(bodyParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(logErrors)
 app.use(clientErrorHandler)
-app.use(errorHandler)
 
-function logErrors (err, req, res, next) {
-    console.error(err.stack)
-    next(err)
-}
-
+/* Error handler */
 function clientErrorHandler (err, req, res, next) {
+    console.error(err.stack)
     if (req.xhr) {
       res.status(500).send({ error: 'Something failed!' })
     } else {
@@ -25,20 +29,13 @@ function clientErrorHandler (err, req, res, next) {
     }
 }
 
-function errorHandler (err, req, res, next) {
-    res.status(500)
-    res.render('error', { error: err })
-}
-
-var port = process.env.PORT || 8090;
-var router = express.Router();
-
+/* Database Handler */
 const config = {
-    user: 'wis',
-    password: 'Grintsys2017',
-    server: 'localhost',
-    database: 'wis',
-    port: 1433,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_DATABASE,
+    port: parseInt(process.env.DB_PORT),
     debug: true,
     options: {
         encrypt: false,
@@ -46,13 +43,22 @@ const config = {
     }
 };
 
+var server = app.listen(port, function(req, res, next){
+    if (result.error) {
+        throw result.error
+    }
+    console.log(`server running at - ${server.address().address}:${server.address().port}`);
+    console.log(result.parsed);
+
+    console.log(config);
+})
+
 //http://localhost:8090/api/grades/6.1.2015192.1
-router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
-    .get(function(req, res){
+router.get('/grades/:gradeId.:sectionId.:studentId.:partial', function(req, res, next){
         console.log('call ro api/grades');
 
         const pool = new sql.ConnectionPool(config, err => {
-            if(err) console.log(err);
+            if(err) next(err);
 
             if(req.params.gradeId && req.params.sectionId && req.params.studentId && req.params.partial){
                 var grade = req.params.gradeId;
@@ -73,7 +79,7 @@ router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
 
                     request.query(queryText, (err, recordset) => {
 
-                                if(err) console.log(err);
+                                if(err) next(err);
     
                                 if(recordset.recordset.length > 0)
                                 {
@@ -90,7 +96,7 @@ router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
 
                                 res.send(result);
                         });
-            }else {
+            } else {
                 res.send({message:'error not fields are specified', success:false}); 
             }
         })
@@ -100,12 +106,11 @@ router.route('/grades/:gradeId.:sectionId.:studentId.:partial')
         });
     })
 
-router.route('/grades/average/:gradeId.:sectionId.:studentId.:partial')
-    .get(function(req, res){
+router.get('/grades/average/:gradeId.:sectionId.:studentId.:partial', function(req, res, next){
         console.log('call ro api/grades');
 
         const pool = new sql.ConnectionPool(config, err => {
-            if(err) console.log(err);
+            if(err) next(err);
 
             if(req.params.gradeId && req.params.sectionId && req.params.studentId && req.params.partial){
                 var grade = req.params.gradeId;
@@ -126,7 +131,7 @@ router.route('/grades/average/:gradeId.:sectionId.:studentId.:partial')
 
                 request.query(queryText, (err, recordset) => {
 
-                        if(err) console.log(err);
+                        if(err) next(err);
     
                         if(recordset.recordset.length > 0)
                         {
@@ -154,11 +159,10 @@ router.route('/grades/average/:gradeId.:sectionId.:studentId.:partial')
     })
 
     //payments/6.1
-router.route('/payments/:gradeId.:cod')
-    .get(function(req, res){
+router.get('/payments/:gradeId.:cod', function(req, res, next){
         console.log('call to api/payments');
         const pool = new sql.ConnectionPool(config, err => {
-            if (err) console.log(err);
+            if (err) next(err);
 
             if(req.params.gradeId && req.params.cod){
                 var grade = req.params.gradeId;
@@ -210,11 +214,10 @@ router.route('/payments/:gradeId.:cod')
     });
 
 
-router.route('/student/:usercode')
-    .get(function(req, res){
+router.get('/student/:usercode', function(req, res, next){
         console.log('call to api/student');
         const pool = new sql.ConnectionPool(config, err => {
-            if(err) console.log(err);
+            if(err) next(err);
 
             if(req.params.usercode){
                 var usercode = req.params.usercode;
@@ -231,7 +234,7 @@ router.route('/student/:usercode')
                         
                     request.query(queryText, (err, recordset) => {
 
-                         if(err) console.log(err);
+                         if(err) next(err);
 
                          if(recordset.recordset.length > 0)
                          {
@@ -261,8 +264,7 @@ router.route('/student/:usercode')
         });
     })
 
-    router.route('/students/:username')
-    .get(function(req, res){
+    app.get('/students/:username', function(req, res){
         console.log('call to api/students');
         const pool = new sql.ConnectionPool(config, err => {
             if(err) console.log(err);
@@ -314,11 +316,10 @@ router.route('/student/:usercode')
         });
     })
 
-router.route('/student/:estudentcode/data')
-    .get(function(req, res){
+router.get('/student/:estudentcode/data', function(req, res, next){
         console.log('call to api/students');
         const pool = new sql.ConnectionPool(config, err => {
-            if(err) console.log(err);
+            if(err) next(err);
 
             if(req.params.estudentcode){
                 var estudentcode = req.params.estudentcode;
@@ -333,7 +334,7 @@ router.route('/student/:estudentcode/data')
                         
                     request.query(queryText, (err, recordset) => {
 
-                         if(err) console.log(err);
+                         if(err) next(err);
 
                          if(recordset.recordset.length > 0)
                          {
@@ -362,14 +363,13 @@ router.route('/student/:estudentcode/data')
         });
     })
 
-router.route('/login')
-    .post(function(req, res){
+router.post('/login', function(req, res, next){
 
         console.log('Call to api/login ');
 
         const pool = new sql.ConnectionPool(config, err => {
 
-            if (err) console.log(err);
+            if (err) next(err);
 
             if(req.body.username && req.body.password)
             {
@@ -388,7 +388,7 @@ router.route('/login')
                          
                     request.query(queryText, (err, recordset) => {
                 
-                        if (err) console.log(err);  
+                        if (err) next(err);  
                         // send records as a response
 
                         if(recordset.recordset.length > 0)
@@ -415,7 +415,7 @@ router.route('/login')
 
                             request2.query(queryText, (err, recordset) => {
 
-                                if (err) console.log(err);  
+                                if (err) next(err);  
                                 // send records as a response
 
                                 if(recordset.recordset.length > 0)
@@ -447,14 +447,13 @@ router.route('/login')
         });
     })
 
-router.route('/login2/:username.:password')
-    .get(function(req, res){
+router.get('/login2/:username.:password', function(req, res, next){
 
         console.log('Call to api/login2 ');
 
         const pool = new sql.ConnectionPool(config, err => {
 
-            if (err) console.log(err);
+            if (err) next(err);
 
             if(req.params.username && req.params.password)
             {
@@ -474,7 +473,7 @@ router.route('/login2/:username.:password')
                          
                     request.query(queryText, (err, recordset) => {
                 
-                        if (err) console.log(err);  
+                        if (err) next(err);  
                         // send records as a response
 
                         if(recordset.recordset.length > 0)
@@ -501,7 +500,7 @@ router.route('/login2/:username.:password')
 
                             request2.query(queryText, (err, recordset) => {
 
-                                if (err) console.log(err);  
+                                if (err) next(err);
                                 // send records as a response
 
                                 if(recordset.recordset.length > 0)
@@ -534,13 +533,13 @@ router.route('/login2/:username.:password')
     })
 
 
-router.route('/users/:name').get(function (req, res) {
+router.get('/users/:name', function (req, res, next) {
 
      console.log('Call to api/users ');
 
      const pool = new sql.ConnectionPool(config, err => {
 
-        if (err) console.log(err);
+        if (err) next(err);
 
         var name = req.params.name;
     
@@ -550,7 +549,7 @@ router.route('/users/:name').get(function (req, res) {
         // query to the database and get the records
         request.query(`select a.[UserNombre] from [wis].[dbo].[USUARIOS] a where a.[name] like ${name}`, (err, recordset) => {
     
-            if (err) console.log(err)
+            if (err) next(err)
     
             // send records as a response
            res.send(recordset); 
@@ -564,13 +563,13 @@ router.route('/users/:name').get(function (req, res) {
 
  
 
- router.route('/homework/:gradeId.:sectionId').get(function (req, res) {
+router.get('/homework/:gradeId.:sectionId', function (req, res, next) {
 
     console.log(`Call to api/homework/${req.params.gradeId}.${req.params.sectionId}`);
 
     const pool = new sql.ConnectionPool(config, err => {
 
-       if (err) console.log(err);
+       if (err) next(err);
   
        // create Request object
        var request = pool.request();
@@ -597,7 +596,7 @@ router.route('/users/:name').get(function (req, res) {
        // query to the database and get the records
        request.query(queryText, (err, recordset) => {
    
-           if (err) console.log(err)
+           if (err) next(err)
    
            // send records as a response
           res.send(recordset.recordset); 
@@ -609,7 +608,7 @@ router.route('/users/:name').get(function (req, res) {
    });
 });
 
- router.get('/logout', function(req, res, next) {
+router.get('/logout', function(req, res, next) {
     if (req.session) {
       // delete session object
       req.session.destroy(function(err) {
@@ -621,10 +620,3 @@ router.route('/users/:name').get(function (req, res) {
       });
     }
   });
-
-//final configuration
-app.use(cors());
-app.use('/api', router);
-app.listen(port);
-
-console.log('REST API is runnning at ' + port);
