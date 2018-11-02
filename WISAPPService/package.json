@@ -1,5 +1,5 @@
 {
-  "name": "WISApp Restfull",
+  "name": "wissapprestfull",
   "version": "1.0.0",
   "description": "WIS Restfull API",
   "main": "index.js",
