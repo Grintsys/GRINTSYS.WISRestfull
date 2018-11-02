@@ -45,7 +45,7 @@ const config = {
     debug: true,
     options: {
         encrypt: false,
-        instanceName: 'SQLEXPRESS'
+        instanceName: process.env.DB_INSTANCE_NAME || 'SQLEXPRESS'
     }
 };
 
