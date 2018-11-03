@@ -274,7 +274,7 @@ router.get('/student/:usercode', function(req, res, next){
     app.get('/students/:username', function(req, res){
         console.log('call to api/students');
         const pool = new sql.ConnectionPool(config, err => {
-            if(err) console.log(err);
+            if(err) next(err);
 
             if(req.params.username){
                 var username = req.params.username;
