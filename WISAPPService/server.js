@@ -43,10 +43,11 @@ const config = {
     database: process.env.DB_DATABASE,
     port: parseInt(process.env.DB_PORT),
     debug: true,
-    options: {
-        encrypt: false,
+    //azure options
+    /*options: {
+        encrypt: true,
         instanceName: process.env.DB_INSTANCE_NAME || 'SQLEXPRESS'
-    }
+    }*/
 };
 
 var server = app.listen(port, function(req, res, next){
@@ -471,10 +472,10 @@ router.get('/login2/:username.:password', function(req, res, next){
                     // create Request object
                     var request = pool.request();
                     
-                    var queryText = `select distinct trim(a.UserCode) Username, b.AluCodigo StudentCode
+                    var queryText = `select distinct rtrim(a.UserCode) Username, b.AluCodigo StudentCode
                                        from dbo.USUARIOS a
                                             inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
-                                     WHERE trim(UserLogin) = trim('${username}') and trim(UserClave) = trim('${password}')
+                                     WHERE rtrim(UserLogin) = rtrim(ltrim('${username}')) and rtrim(ltrim(UserClave)) = ltrim(rtrim('${password}'))
                                        and UserActivo = 'S'`;
                          
                     request.query(queryText, (err, recordset) => {
@@ -497,11 +498,11 @@ router.get('/login2/:username.:password', function(req, res, next){
 
                             var request2 = pool.request();
 
-                            var queryText = `SELECT distinct c.AluCodigo StudentCode, trim(a.UserNombre) [Username]
+                            var queryText = `SELECT distinct c.AluCodigo StudentCode, rtrim(a.UserNombre) [Username]
                                                 FROM [wis].[dbo].[USUARIOS] a
                                                      inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
                                                      inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
-                                                WHERE trim(USERCODE) = trim('${username}') and trim(UserClave) = trim('${password}') 
+                                                WHERE rtrim(USERCODE) = rtrim('${username}') and rtrim(UserClave) = rtrim('${password}') 
                                                   and UserActivo = 'S'`;
 
                             request2.query(queryText, (err, recordset) => {
