@@ -374,55 +374,57 @@ router.post('/login', function(req, res, next){
 
         console.log('Call to api/login ');
 
+        var username = req.body.username;
+        var password = req.body.password;
+
+        if(!username && !password){
+            res.status(403).send({ sucess: false, message: 'missing parameters'});
+        }
+
         const pool = new sql.ConnectionPool(config, err => {
 
-            if (err) next(err);
+            if (err) return next(err);
 
-            if(req.body.username && req.body.password)
-            {
-                    var username = req.body.username;
-                    var password = req.body.password;
+            console.log("U: "+username+" P: "+password);
 
-                    console.log("U: "+username+" P: "+password);
-
-                    // create Request object
-                    var request = pool.request();
+            // create Request object
+            var request = pool.request();
                     
-                    var queryText = `select distinct ltrim(rtrim(a.UserCode)) Username, b.AluCodigo StudentCode
+            var queryText = `select distinct ltrim(rtrim(a.UserCode)) Username, b.AluCodigo StudentCode
                                        from dbo.USUARIOS a
                                             inner join dbo.USUARIOSALUMNOS b on a.UserCode = b.UserCode
                                       WHERE ltrim(rtrim(UserLogin)) = ltrim(rtrim('${username}')) and ltrim(rtrim(UserClave)) = ltrim(rtrim('${password}'))`;
                          
-                    request.query(queryText, (err, recordset) => {
+            request.query(queryText, (err, recordset) => {
                 
-                        if (err) next(err);  
+                if (err) next(err);  
                         // send records as a response
 
-                        if(recordset.recordset.length > 0)
-                        {
-                            console.log("Success Login for student "+username);
+                if(recordset.recordset.length > 0)
+                {
+                    console.log("Success Login for student "+username);
 
-                            var result = {
-                                success: true, 
-                                users: recordset.recordset
-                            }; 
-
-                            res.send(result);
+                    var result = {
+                            success: true, 
+                            users: recordset.recordset
+                    }; 
+                    
+                    res.send(result);
         
-                        } else {
+                } else {
 
-                            var request2 = pool.request();
+                    var request2 = pool.request();
 
-                            var queryText = `SELECT distinct c.AluCodigo StudentCode, ltrim(rtrim(a.UserCode)) [Username]
-                                                FROM [wis].[dbo].[USUARIOS] a
-                                                    inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
-                                                    inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
-                                                WHERE ltrim(rtrim(USERCODE)) = ltrim(rtrim('${username}')) and ltrim(rtrim(UserClave)) = ltrim(rtrim('${password}')) 
-                                                    and UserActivo = 'S'`;
+                    var queryText = `SELECT distinct c.AluCodigo StudentCode, ltrim(rtrim(a.UserCode)) [Username]
+                                       FROM [wis].[dbo].[USUARIOS] a
+                                            inner join wis.dbo.FAMILIAS b on a.UserCode = b.FamUsuario 
+                                            inner join wis.dbo.FAMILIASLEVEL11 c on c.FamCod = b.FamCod
+                                      WHERE ltrim(rtrim(USERCODE)) = ltrim(rtrim('${username}')) and ltrim(rtrim(UserClave)) = ltrim(rtrim('${password}')) 
+                                        and UserActivo = 'S'`;
 
                             request2.query(queryText, (err, recordset) => {
 
-                                if (err) next(err);  
+                                if (err) return next(err);  
                                 // send records as a response
 
                                 if(recordset.recordset.length > 0)
@@ -431,6 +433,7 @@ router.post('/login', function(req, res, next){
         
                                     var result = {
                                         success: true, 
+                                        message: 'Success Login for familiy',
                                         users: recordset.recordset
                                     };                                        
                                 } else{
@@ -441,13 +444,10 @@ router.post('/login', function(req, res, next){
                                 }
 
                                 res.send(result);
-                            });  
-                        }
-                    });
-            }else{
-                    res.send({message:'error on username or password', success:false}); 
-            }
-        });
+                        });  
+                    }
+                });
+            });
 
         pool.on('error', err => {
             res.send({error: err, success:false});
