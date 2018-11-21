@@ -51,6 +51,7 @@ var server = app.listen(port, function(req, res, next){
 
 require('./grades')(app, sql, config);
 require('./students')(app, sql, config);
+require('./homework')(app, sql, config);
 require('./payments')(app, sql, config);
 require('./grades')(app, sql, config);
 require('./users')(app, sql, config);
