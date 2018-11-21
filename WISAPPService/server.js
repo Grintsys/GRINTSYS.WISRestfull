@@ -39,7 +39,7 @@ app.use(function(err, req, res, next){
 })
 
 
-app.listen(port, function(req, res, next){
+var server = app.listen(port, function(req, res, next){
     if (result.error) {
         throw result.error
     }
