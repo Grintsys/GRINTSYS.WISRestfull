@@ -44,10 +44,10 @@ const config = {
     port: parseInt(process.env.DB_PORT),
     debug: true,
     //azure options
-    /*options: {
-        encrypt: true,
+    options: {
+        encrypt: false,
         instanceName: process.env.DB_INSTANCE_NAME || 'SQLEXPRESS'
-    }*/
+    }
 };
 
 var server = app.listen(port, function(req, res, next){
