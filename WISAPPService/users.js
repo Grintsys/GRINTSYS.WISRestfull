@@ -83,9 +83,16 @@ module.exports = (app, sql, config) => {
         });
     })
     
-    app.get('/users/login2/:username.:password', function(req, res, next){
+    app.post('/users/login2', function(req, res, next){
     
         console.log('Call to api/login2 ');
+
+        var username = req.body.username;
+        var password = req.body.password;
+    
+        if(!username || !password){
+            res.status(403).send({ sucess: false, message: 'missing parameters'});
+        }
     
         const pool = new sql.ConnectionPool(config, err => {
     
