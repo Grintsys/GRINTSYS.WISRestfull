@@ -11,9 +11,9 @@ var app = express();
 var port = parseInt(process.env.APP_PORT) || 8091;
 
 app.use(cors());
-app.use(methodOverride());
 app.use(bodyParser());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(methodOverride());
+//app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 
