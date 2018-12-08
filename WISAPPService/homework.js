@@ -23,10 +23,10 @@ module.exports = (app, sql, config) => {
                                         on c.GraCodigo = a.GraCodigo \
                         WHERE a.GraCodigo = ${req.params.gradeId} \
                             and a.SeccCodigo = ${req.params.sectionId} \
-                            and a.TrabClassMatriculaFechMax >= GETDATE()\
+                            and a.TrabClassMatriculaFechMax > GETDATE()\
                             and b.ClaTipo in ('NO','MD')
                             and b.ClaConPerso = 'N'
-                        order by a.[TrabClassMatriculaFechEntre] desc`;
+                        order by a.[TrabClassMatriculaFechEntre] asc`;
 
         //console.log(queryText);
         // query to the database and get the records
