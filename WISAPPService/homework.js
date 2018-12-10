@@ -26,7 +26,7 @@ module.exports = (app, sql, config) => {
                             and a.TrabClassMatriculaFechMax > GETDATE()\
                             and b.ClaTipo in ('NO','MD')
                             and b.ClaConPerso = 'N'
-                        order by a.[TrabClassMatriculaFechEntre] asc`;
+                       order by abs(DATEDIFF(dd, GETDATE(), a.[TrabClassMatriculaFechEntre])) asc`;
 
         //console.log(queryText);
         // query to the database and get the records
